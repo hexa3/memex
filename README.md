@@ -12,8 +12,8 @@ Local-first. No server. No API key. One import.
 [![npm](https://img.shields.io/npm/v/memex-ai?style=flat-square&color=0f6e56&label=npm)](https://www.npmjs.com/package/memex-ai)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue?style=flat-square)](https://pypi.org/project/memex-ai/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow?style=flat-square)](LICENSE)
-[![Tests](https://img.shields.io/github/actions/workflow/status/yourname/memex/ci.yml?style=flat-square&label=tests)](https://github.com/yourname/memex/actions)
-[![Stars](https://img.shields.io/github/stars/yourname/memex?style=flat-square)](https://github.com/yourname/memex/stargazers)
+[![Tests](https://img.shields.io/github/actions/workflow/status/yourname/memex/ci.yml?style=flat-square&label=tests)](https://github.com/ibnshafi/memex/actions)
+[![Stars](https://img.shields.io/github/stars/ibnshafi/memex?style=flat-square)](https://github.com/ibnshafi/memex/stargazers)
 
 </div>
 
