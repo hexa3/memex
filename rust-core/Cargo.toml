@@ -1,0 +1,27 @@
+[package]
+name = "memex-core"
+version = "0.1.1"
+edition = "2021"
+license = "Apache-2.0"
+description = "High-performance core routines for memex memory indexing and sync diffing."
+
+[lib]
+name = "memex_core"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+python = ["dep:pyo3"]
+node = ["dep:napi", "dep:napi-derive"]
+
+[dependencies]
+pyo3 = { version = "0.21", optional = true, features = ["extension-module"] }
+napi = { version = "2", optional = true, default-features = false, features = ["napi4"] }
+napi-derive = { version = "2", optional = true }
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "retrieval"
+harness = false

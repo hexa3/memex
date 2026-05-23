@@ -82,6 +82,8 @@ export class Memory {
       text: value,
       embedding: embedHash(value.slice(0, 20_000), this.dimension),
       metadata,
+      memoryType: options.memoryType ?? "long_term",
+      sourceIds: options.sourceIds ?? [],
       importance: options.importance ?? 1,
       createdAt: now(),
       accessedAt: now(),
@@ -113,6 +115,7 @@ export class Memory {
     const results = records
       .filter((record) => record.namespace === namespace)
       .filter((record) => !isExpired(record))
+      .filter((record) => !options.memoryTypes || options.memoryTypes.includes(record.memoryType ?? "long_term"))
       .filter((record) => metadataMatches(record.metadata, filters))
       .map((record) => {
         const similarity = cosineSimilarity(embedding, record.embedding ?? []);
@@ -141,6 +144,29 @@ export class Memory {
     if (memories.length === 0) return prompt;
     const block = memories.map((memory) => `- ${memory.text}`).join("\n");
     return `[Memory context]\n${block}\n\n${prompt}`;
+  }
+
+  async hybridSearch(query: string, options: SearchOptions = {}): Promise<MemoryRecord[]> {
+    const semantic = await this.search(query, { ...options, k: Math.max((options.k ?? 5) * 2, options.k ?? 5) });
+    const terms = new Set(normalizeText(query, 20_000).toLowerCase().match(/[a-z0-9][a-z0-9_'-]*/g) ?? []);
+    if (terms.size === 0) return semantic.slice(0, options.k ?? 5);
+    const records = this.http ? [] : await this.store.load();
+    const seen = new Map(semantic.map((record) => [record.id, record]));
+    for (const record of records) {
+      if (record.namespace !== normalizeNamespace(options.namespace ?? this.namespace)) continue;
+      if (options.memoryTypes && !options.memoryTypes.includes(record.memoryType ?? "long_term")) continue;
+      const words = record.text.toLowerCase().match(/[a-z0-9][a-z0-9_'-]*/g) ?? [];
+      const overlap = words.filter((word) => terms.has(word)).length;
+      if (overlap === 0) continue;
+      const keywordScore = overlap / terms.size;
+      const existing = seen.get(record.id);
+      if (existing) {
+        existing.score = Math.max(existing.score ?? 0, keywordScore) + 0.15;
+      } else {
+        seen.set(record.id, { ...record, score: keywordScore, similarity: keywordScore });
+      }
+    }
+    return [...seen.values()].sort((left, right) => (right.score ?? 0) - (left.score ?? 0)).slice(0, options.k ?? 5);
   }
 
   async learn(userMsg: string, assistantMsg: string): Promise<string[]> {

@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+MemoryKind = Literal["short_term", "long_term", "episodic", "semantic", "summary"]
 
 
 class MemoryRecord(BaseModel):
@@ -22,6 +24,8 @@ class MemoryRecord(BaseModel):
     text: str
     embedding: list[float] | None = Field(default=None, repr=False)
     metadata: dict[str, Any] | None = None
+    memory_type: MemoryKind = "long_term"
+    source_ids: list[str] = Field(default_factory=list)
     importance: float = Field(default=1.0, ge=0.0, le=1.0)
     created_at: datetime
     accessed_at: datetime
@@ -46,6 +50,11 @@ class MemoryRecord(BaseModel):
             raise ValueError("namespace must not be empty")
         return namespace
 
+    @field_validator("source_ids")
+    @classmethod
+    def source_ids_must_be_unique(cls, value: list[str]) -> list[str]:
+        return list(dict.fromkeys(item.strip() for item in value if item.strip()))
+
 
 class SaveRequest(BaseModel):
     """Validated input for saving a memory."""
@@ -54,6 +63,8 @@ class SaveRequest(BaseModel):
 
     text: str = Field(min_length=1, max_length=100_000)
     metadata: dict[str, Any] | None = None
+    memory_type: MemoryKind = "long_term"
+    source_ids: list[str] = Field(default_factory=list)
     ttl_days: int | None = Field(default=None, ge=1, le=365_000)
     importance: float = Field(default=1.0, ge=0.0, le=1.0)
     namespace: str = "default"
@@ -69,6 +80,18 @@ class SearchRequest(BaseModel):
     threshold: float = Field(default=0.0, ge=-1.0, le=1.0)
     filters: dict[str, Any] | None = None
     namespace: str = "default"
+    memory_types: list[MemoryKind] | None = None
+
+
+class SummaryResult(BaseModel):
+    """Result returned by memory compaction/summarization."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    summary_id: str | None
+    source_ids: list[str]
+    text: str | None
+    deleted_sources: int = 0
 
 
 class MemoryStats(BaseModel):

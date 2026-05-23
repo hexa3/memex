@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import heapq
 import importlib
+import json
 import math
 import sqlite3
 import threading
@@ -12,10 +13,10 @@ from collections.abc import Iterable
 from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from memex.errors import ImportValidationError, StorageError
-from memex.models import MemoryRecord, MemoryStats, datetime_from_timestamp
+from memex.models import MemoryKind, MemoryRecord, MemoryStats, datetime_from_timestamp
 from memex.utils import (
     cosine_similarity,
     default_db_path,
@@ -26,6 +27,7 @@ from memex.utils import (
     pack_embedding,
     secure_file,
     secure_parent_dir,
+    tokenize,
     unpack_embedding,
     utc_timestamp,
     validate_embedding,
@@ -51,6 +53,8 @@ class StoredMemory:
     created_at: int
     accessed_at: int
     ttl_days: int | None
+    memory_type: str = "long_term"
+    source_ids: builtin_list[str] | None = None
 
 
 class SQLiteStorage:
@@ -77,7 +81,7 @@ class SQLiteStorage:
     @property
     def vector_index(self) -> str:
         """Return the active vector index mode."""
-        return "python-scan"
+        return "sqlite-vec" if self._sqlite_vec_available else "python-scan"
 
     def close(self) -> None:
         """Close the SQLite connection."""
@@ -128,13 +132,19 @@ class SQLiteStorage:
                     embedding_blob = pack_embedding(memory.embedding, dimension=self.dimension)
                     metadata_json = metadata_to_json(validate_metadata(memory.metadata))
                     namespace = normalize_namespace(memory.namespace)
+                    source_ids_json = json.dumps(
+                        list(dict.fromkeys(memory.source_ids or [])),
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                    )
                     conn.execute(
                         """
                         INSERT OR REPLACE INTO memories (
                             id, namespace, text, embedding, metadata, importance,
-                            created_at, accessed_at, access_count, ttl_days, is_deleted
+                            created_at, accessed_at, access_count, ttl_days,
+                            memory_type, source_ids, is_deleted
                         )
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 0)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, 0)
                         """,
                         (
                             memory.id,
@@ -146,6 +156,8 @@ class SQLiteStorage:
                             memory.created_at,
                             memory.accessed_at,
                             memory.ttl_days,
+                            memory.memory_type,
+                            source_ids_json,
                         ),
                     )
                     if self._sqlite_vec_available:
@@ -175,6 +187,7 @@ class SQLiteStorage:
         k: int,
         threshold: float = 0.0,
         filters: MetadataDict | None = None,
+        memory_types: set[str] | None = None,
         exclude_ids: set[str] | None = None,
         include_embedding: bool = False,
         update_access: bool = True,
@@ -187,7 +200,7 @@ class SQLiteStorage:
         exclude_ids = exclude_ids or set()
         with self._lock:
             conn = self.connect()
-            if False:
+            if self._sqlite_vec_available and not filters and not memory_types:
                 try:
                     records = self._search_sqlite_vec(
                         conn,
@@ -211,6 +224,7 @@ class SQLiteStorage:
                 k=k,
                 threshold=threshold,
                 filters=filters,
+                memory_types=memory_types,
                 exclude_ids=exclude_ids,
                 include_embedding=include_embedding,
             )
@@ -252,6 +266,62 @@ class SQLiteStorage:
                 (normalize_namespace(namespace), limit, offset),
             ).fetchall()
         return [self._row_to_record(row, include_embedding=include_embedding) for row in rows]
+
+    def keyword_search(
+        self,
+        *,
+        namespace: str,
+        query: str,
+        k: int,
+        filters: MetadataDict | None = None,
+        memory_types: set[str] | None = None,
+        exclude_ids: set[str] | None = None,
+    ) -> MemoryRecordList:
+        """Return keyword matches using a compact BM25-like token score."""
+
+        namespace = normalize_namespace(namespace)
+        filters = validate_metadata(filters) if filters else None
+        exclude_ids = exclude_ids or set()
+        query_terms = tokenize(query)
+        if not query_terms:
+            return []
+        query_set = set(query_terms)
+        rows = self.connect().execute(
+            """
+            SELECT * FROM memories
+            WHERE namespace = ?
+              AND is_deleted = 0
+              AND (ttl_days IS NULL OR created_at + ttl_days * 86400 > unixepoch())
+            """,
+            (namespace,),
+        ).fetchall()
+        scored: builtin_list[tuple[float, MemoryRecord]] = []
+        for row in rows:
+            if row["id"] in exclude_ids:
+                continue
+            if memory_types and str(row["memory_type"]) not in memory_types:
+                continue
+            metadata = metadata_from_json(row["metadata"])
+            if not metadata_matches(metadata, filters):
+                continue
+            document_terms = tokenize(str(row["text"]))
+            if not document_terms:
+                continue
+            overlap = sum(1 for term in document_terms if term in query_set)
+            if overlap == 0:
+                continue
+            coverage = overlap / max(1, len(query_set))
+            density = overlap / max(1, len(document_terms))
+            record = self._row_to_record(row, include_embedding=False, metadata=metadata)
+            record.similarity = min(1.0, coverage)
+            record.score = (0.75 * coverage + 0.25 * density) * self._effective_importance(
+                record.importance,
+                int(row["created_at"]),
+                int(row["access_count"]),
+            )
+            scored.append((record.score or 0.0, record))
+        top = heapq.nlargest(k, scored, key=lambda item: item[0])
+        return [record for _, record in top]
 
     def mark_accessed(self, ids: Iterable[str]) -> None:
         """Increment access counters for memory ids."""
@@ -401,6 +471,8 @@ class SQLiteStorage:
                     text=record.text,
                     embedding=record.embedding,
                     metadata=record.metadata,
+                    memory_type=record.memory_type,
+                    source_ids=record.source_ids,
                     importance=record.importance,
                     created_at=int(record.created_at.timestamp()),
                     accessed_at=int(record.accessed_at.timestamp()),
@@ -480,13 +552,23 @@ class SQLiteStorage:
                 accessed_at INTEGER NOT NULL,
                 access_count INTEGER NOT NULL DEFAULT 0,
                 ttl_days INTEGER DEFAULT NULL,
+                memory_type TEXT NOT NULL DEFAULT 'long_term',
+                source_ids TEXT,
                 is_deleted INTEGER NOT NULL DEFAULT 0
             )
             """
         )
+        self._add_column_if_missing(
+            conn,
+            "memories",
+            "memory_type",
+            "TEXT NOT NULL DEFAULT 'long_term'",
+        )
+        self._add_column_if_missing(conn, "memories", "source_ids", "TEXT")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_memories_namespace ON memories(namespace)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_memories_created ON memories(created_at)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_memories_deleted ON memories(is_deleted)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_memories_type ON memories(memory_type)")
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS memex_meta (
@@ -513,6 +595,17 @@ class SQLiteStorage:
             except sqlite3.DatabaseError:
                 self._sqlite_vec_available = False
 
+    def _add_column_if_missing(
+        self,
+        conn: sqlite3.Connection,
+        table: str,
+        column: str,
+        definition: str,
+    ) -> None:
+        existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+        if column not in existing:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+
     def _insert_vector(
         self,
         conn: sqlite3.Connection,
@@ -526,7 +619,7 @@ class SQLiteStorage:
                 (memory_id, embedding_blob),
             )
         except sqlite3.DatabaseError:
-         self._sqlite_vec_available = False
+            self._sqlite_vec_available = False
 
     def _search_sqlite_vec(
         self,
@@ -564,7 +657,7 @@ class SQLiteStorage:
             if row["id"] in exclude_ids:
                 continue
             distance = max(0.0, float(row["distance"]))
-            similarity = max(-1.0, min(1.0, 1.0 - distance))
+            similarity = 1.0 / (1.0 + distance)
             if similarity < threshold:
                 continue
             record = self._row_to_record(row, include_embedding=include_embedding)
@@ -588,6 +681,7 @@ class SQLiteStorage:
         k: int,
         threshold: float,
         filters: dict[str, Any] | None,
+        memory_types: set[str] | None,
         exclude_ids: set[str],
         include_embedding: bool,
     ) -> MemoryRecordList:
@@ -603,6 +697,8 @@ class SQLiteStorage:
         hits: builtin_list[tuple[float, MemoryRecord]] = []
         for row in rows:
             if row["id"] in exclude_ids:
+                continue
+            if memory_types and str(row["memory_type"]) not in memory_types:
                 continue
             metadata = metadata_from_json(row["metadata"])
             if not metadata_matches(metadata, filters):
@@ -645,12 +741,23 @@ class SQLiteStorage:
             parsed_metadata = None
         if include_embedding and embedding is None:
             embedding = unpack_embedding(row["embedding"], dimension=self.dimension)
+        row_keys = row.keys()
+        raw_source_ids = row["source_ids"] if "source_ids" in row_keys else None
+        try:
+            parsed_source_ids = json.loads(raw_source_ids) if raw_source_ids else []
+        except json.JSONDecodeError:
+            parsed_source_ids = []
+        if not isinstance(parsed_source_ids, list):
+            parsed_source_ids = []
+        memory_type = str(row["memory_type"]) if "memory_type" in row_keys else "long_term"
         return MemoryRecord(
             id=str(row["id"]),
             namespace=str(row["namespace"]),
             text=str(row["text"]),
             embedding=embedding if include_embedding else None,
             metadata=parsed_metadata,
+            memory_type=cast(MemoryKind, memory_type),
+            source_ids=[str(item) for item in parsed_source_ids],
             importance=float(row["importance"]),
             created_at=datetime_from_timestamp(int(row["created_at"])),
             accessed_at=datetime_from_timestamp(int(row["accessed_at"])),

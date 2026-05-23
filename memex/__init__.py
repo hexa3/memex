@@ -18,17 +18,19 @@ from memex.embedders import (
     SentenceTransformerEmbedder,
     create_embedder,
 )
-from memex.models import MemoryRecord, MemoryStats
+from memex.models import MemoryKind, MemoryRecord, MemoryStats, SummaryResult
 
 __all__ = [
     "BaseEmbedder",
     "HashEmbedder",
     "Memory",
+    "MemoryKind",
     "MemoryRecord",
     "MemoryStats",
     "OpenAIEmbedder",
     "SentenceTransformerEmbedder",
+    "SummaryResult",
     "create_embedder",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"

@@ -35,3 +35,11 @@ jobs:
         run: npm run typecheck
       - working-directory: js
         run: npm run build
+
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - working-directory: rust-core
+        run: cargo test

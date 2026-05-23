@@ -30,6 +30,9 @@ pytest
 - Keep the public API small.
 - Make heavy dependencies optional or lazy.
 - Tests must not download models or require API keys.
+- Preserve traceability when compressing memories.
+- Keep sync transports optional, encrypted, and zero-trust.
+- Add Rust acceleration behind a fallback path, never as a hard runtime requirement.
 
 ## Pull requests
 
@@ -38,7 +41,7 @@ Please include:
 - A clear problem statement.
 - Tests for changed behavior.
 - Documentation updates for public API changes.
-- Benchmark notes for storage, embedding, or search changes.
+- Benchmark notes for storage, embedding, sync, or search changes.
 
 ## Release checklist
 

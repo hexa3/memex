@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from pydantic import BaseModel, Field
 
 from memex.core import Memory
 from memex.errors import OptionalDependencyError
+from memex.models import MemoryKind
 
 
 class SaveBody(BaseModel):
@@ -16,6 +17,8 @@ class SaveBody(BaseModel):
 
     text: str = Field(min_length=1, max_length=100_000)
     metadata: dict[str, Any] | None = None
+    memory_type: str = "long_term"
+    source_ids: list[str] | None = None
     ttl_days: int | None = Field(default=None, ge=1)
     importance: float = Field(default=1.0, ge=0.0, le=1.0)
     namespace: str | None = None
@@ -69,6 +72,8 @@ def create_app(memory: Memory | None = None) -> Any:
                 metadata=body.metadata,
                 ttl_days=body.ttl_days,
                 importance=body.importance,
+                memory_type=cast(MemoryKind, body.memory_type),
+                source_ids=body.source_ids,
                 namespace=body.namespace,
             )
             return {"id": memory_id}
@@ -89,14 +94,33 @@ def create_app(memory: Memory | None = None) -> Any:
         k: int = Query(default=5, ge=1, le=100),
         threshold: float = Query(default=0.0, ge=-1.0, le=1.0),
         namespace: str | None = None,
+        hybrid: bool = True,
     ) -> dict[str, list[dict[str, Any]]]:
-        results = mem.search(q, k=k, threshold=threshold, namespace=namespace)
+        if hybrid:
+            results = mem.hybrid_search(q, k=k, threshold=threshold, namespace=namespace)
+        else:
+            results = mem.search(q, k=k, threshold=threshold, namespace=namespace)
         return {
             "results": [
                 result.model_dump(mode="json", exclude={"embedding"}, exclude_none=True)
                 for result in results
             ]
         }
+
+    @app.post("/summarize")
+    def summarize(
+        min_sources: int = Query(default=8, ge=2),
+        max_sources: int = Query(default=50, ge=2, le=500),
+        delete_sources: bool = False,
+        namespace: str | None = None,
+    ) -> dict[str, Any]:
+        result = mem.summarize(
+            namespace=namespace,
+            min_sources=min_sources,
+            max_sources=max_sources,
+            delete_sources=delete_sources,
+        )
+        return result.model_dump(mode="json", exclude_none=True)
 
     @app.post("/learn")
     def learn(body: LearnBody) -> dict[str, list[str]]:

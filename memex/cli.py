@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import cast
 
 import typer
 
 from memex import __version__
 from memex.core import Memory
 from memex.embedders import create_embedder
+from memex.models import MemoryKind
 
 app = typer.Typer(help="Local-first memory for LLM applications.", no_args_is_help=True)
 
@@ -42,11 +44,19 @@ def save(
     embedder: str = typer.Option("auto", "--embedder", help="Embedder name."),
     ttl_days: int | None = typer.Option(None, "--ttl-days", min=1),
     importance: float = typer.Option(1.0, "--importance", min=0.0, max=1.0),
+    memory_type: str = typer.Option("long_term", "--type", help="Memory hierarchy type."),
 ) -> None:
     """Save a memory."""
 
     mem = _memory(db=db, namespace=namespace, embedder=embedder)
-    typer.echo(mem.save(text, ttl_days=ttl_days, importance=importance))
+    typer.echo(
+        mem.save(
+            text,
+            ttl_days=ttl_days,
+            importance=importance,
+            memory_type=cast(MemoryKind, memory_type),
+        )
+    )
 
 
 @app.command()
@@ -73,12 +83,20 @@ def search(
     db: Path | None = typer.Option(None, "--db"),
     embedder: str = typer.Option("auto", "--embedder"),
     threshold: float = typer.Option(0.0, "--threshold", min=-1.0, max=1.0),
+    hybrid: bool = typer.Option(
+        True,
+        "--hybrid/--semantic-only",
+        help="Blend vector and keyword ranking.",
+    ),
     json_output: bool = typer.Option(False, "--json", help="Print JSON results."),
 ) -> None:
     """Search memories."""
 
     mem = _memory(db=db, namespace=namespace, embedder=embedder)
-    results = mem.search(query, k=k, threshold=threshold)
+    if hybrid:
+        results = mem.hybrid_search(query, k=k, threshold=threshold)
+    else:
+        results = mem.search(query, k=k, threshold=threshold)
     if json_output:
         typer.echo(
             json.dumps(
@@ -189,6 +207,44 @@ def stats(
 
     mem = _memory(db=db, namespace=namespace, embedder=embedder)
     typer.echo(json.dumps(mem.stats().model_dump(mode="json"), indent=2))
+
+
+@app.command()
+def summarize(
+    namespace: str = typer.Option("default", "--namespace", "-n"),
+    db: Path | None = typer.Option(None, "--db"),
+    embedder: str = typer.Option("auto", "--embedder"),
+    min_sources: int = typer.Option(8, "--min-sources", min=2),
+    max_sources: int = typer.Option(50, "--max-sources", min=2, max=500),
+    delete_sources: bool = typer.Option(
+        False,
+        "--delete-sources",
+        help="Replace sources with summary.",
+    ),
+) -> None:
+    """Create a traceable semantic summary from existing memories."""
+
+    mem = _memory(db=db, namespace=namespace, embedder=embedder)
+    result = mem.summarize(
+        namespace=namespace,
+        min_sources=min_sources,
+        max_sources=max_sources,
+        delete_sources=delete_sources,
+    )
+    typer.echo(json.dumps(result.model_dump(mode="json", exclude_none=True), indent=2))
+
+
+@app.command()
+def optimize(
+    namespace: str = typer.Option("default", "--namespace", "-n"),
+    db: Path | None = typer.Option(None, "--db"),
+    embedder: str = typer.Option("auto", "--embedder"),
+) -> None:
+    """Run one memory cleanup and summarization pass."""
+
+    mem = _memory(db=db, namespace=namespace, embedder=embedder)
+    result = mem.optimize(namespace=namespace)
+    typer.echo(json.dumps(result.model_dump(mode="json", exclude_none=True), indent=2))
 
 
 @app.command()

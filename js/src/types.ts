@@ -1,4 +1,5 @@
 export type Metadata = Record<string, unknown>;
+export type MemoryType = "short_term" | "long_term" | "episodic" | "semantic" | "summary";
 
 export interface MemoryRecord {
   id: string;
@@ -6,6 +7,8 @@ export interface MemoryRecord {
   text: string;
   embedding?: number[] | undefined;
   metadata?: Metadata | undefined;
+  memoryType?: MemoryType | undefined;
+  sourceIds?: string[] | undefined;
   importance: number;
   createdAt: number;
   accessedAt: number;
@@ -29,6 +32,8 @@ export interface SaveOptions {
   metadata?: Metadata | undefined;
   ttlDays?: number | undefined;
   importance?: number | undefined;
+  memoryType?: MemoryType | undefined;
+  sourceIds?: string[] | undefined;
   namespace?: string | undefined;
 }
 
@@ -36,6 +41,7 @@ export interface SearchOptions {
   k?: number | undefined;
   threshold?: number | undefined;
   filters?: Metadata | undefined;
+  memoryTypes?: MemoryType[] | undefined;
   namespace?: string | undefined;
 }
 
