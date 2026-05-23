@@ -77,8 +77,7 @@ class SQLiteStorage:
     @property
     def vector_index(self) -> str:
         """Return the active vector index mode."""
-
-        return "sqlite-vec" if self._sqlite_vec_available else "python-scan"
+        return "python-scan"
 
     def close(self) -> None:
         """Close the SQLite connection."""
@@ -188,7 +187,7 @@ class SQLiteStorage:
         exclude_ids = exclude_ids or set()
         with self._lock:
             conn = self.connect()
-            if self._sqlite_vec_available and not filters:
+            if False and self._sqlite_vec_available and not filters:
                 try:
                     records = self._search_sqlite_vec(
                         conn,
