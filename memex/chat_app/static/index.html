@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Memex Chat</title>
+    <link rel="stylesheet" href="/static/styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="chat-pane" aria-label="Chat">
+        <header class="topbar">
+          <div>
+            <h1>Memex Chat</h1>
+            <p id="provider">Connecting</p>
+          </div>
+          <button id="new-session" type="button">New session</button>
+        </header>
+
+        <section id="messages" class="messages" aria-live="polite"></section>
+
+        <form id="composer" class="composer">
+          <textarea
+            id="message-input"
+            name="message"
+            rows="3"
+            placeholder="Tell it something memorable, then ask about it later."
+            autocomplete="off"
+          ></textarea>
+          <button id="send-button" type="submit">Send</button>
+        </form>
+      </section>
+
+      <aside class="memory-sidebar" aria-label="Memory sidebar">
+        <header class="memory-header">
+          <div>
+            <h2>Memory</h2>
+            <p id="memory-count">0 memories</p>
+          </div>
+          <button id="refresh-memories" type="button">Refresh</button>
+        </header>
+
+        <section class="memory-used">
+          <h3>Used for this reply</h3>
+          <div id="used-memories" class="used-list">None yet</div>
+        </section>
+
+        <section id="memory-list" class="memory-list"></section>
+      </aside>
+    </main>
+
+    <template id="message-template">
+      <article class="message">
+        <div class="message-role"></div>
+        <div class="message-body"></div>
+        <div class="message-memory"></div>
+      </article>
+    </template>
+
+    <template id="memory-template">
+      <article class="memory-item">
+        <div class="memory-meta">
+          <span class="memory-type"></span>
+          <time class="memory-time"></time>
+        </div>
+        <p class="memory-text"></p>
+      </article>
+    </template>
+
+    <script src="/static/app.js" type="module"></script>
+  </body>
+</html>

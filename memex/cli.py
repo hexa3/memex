@@ -264,6 +264,22 @@ def serve(
 
 
 @app.command()
+def chat(
+    host: str = typer.Option("127.0.0.1", "--host"),
+    port: int = typer.Option(8766, "--port", min=1, max=65535),
+    namespace: str = typer.Option("chat-demo", "--namespace", "-n"),
+) -> None:
+    """Start the Memex chat web app."""
+
+    if host == "0.0.0.0":
+        typer.echo("Warning: binding to 0.0.0.0 exposes the chat demo to your network.", err=True)
+    from memex.chat_app.app import serve_chat_app
+
+    typer.echo(f"Memex Chat is starting at http://{host}:{port}")
+    serve_chat_app(host=host, port=port, namespace=namespace)
+
+
+@app.command()
 def models() -> None:
     """List built-in embedders."""
 
