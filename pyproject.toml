@@ -1,3 +1,6 @@
+# Vercel FastAPI entrypoint
+[tool.vercel]
+entrypoint = "memex.__main__:app"
 [build-system]
 requires = ["hatchling>=1.25"]
 build-backend = "hatchling.build"

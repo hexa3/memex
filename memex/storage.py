@@ -187,7 +187,7 @@ class SQLiteStorage:
         exclude_ids = exclude_ids or set()
         with self._lock:
             conn = self.connect()
-            if False and self._sqlite_vec_available and not filters:
+            if False:
                 try:
                     records = self._search_sqlite_vec(
                         conn,

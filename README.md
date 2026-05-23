@@ -1,23 +1,31 @@
-<div align="center">
+``` text
+███╗   ███╗███████╗███╗   ███╗███████╗██╗  ██╗
+████╗ ████║██╔════╝████╗ ████║██╔════╝╚██╗██╔╝
+██╔████╔██║█████╗  ██╔████╔██║█████╗   ╚███╔╝
+██║╚██╔╝██║██╔══╝  ██║╚██╔╝██║██╔══╝   ██╔██╗
+██║ ╚═╝ ██║███████╗██║ ╚═╝ ██║███████╗██╔╝ ██╗
+╚═╝     ╚═╝╚══════╝╚═╝     ╚═╝╚══════╝╚═╝  ╚═╝
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/yourname/memex/main/docs/logo-dark.svg">
-  <img alt="memex" src="https://raw.githubusercontent.com/yourname/memex/main/docs/logo-light.svg" height="72">
-</picture>
+                    / I B N S H A F I
+```
 
-**Persistent, searchable memory for any LLM.**  
-Local-first. No server. No API key. One import.
+# memex
 
+**Persistent semantic memory for any LLM**\
+Local-first • Zero infrastructure • No telemetry • One import
+
+[Documentation](https://github.com/ibnshafi/memex/tree/main/docs) •
+[Examples](https://github.com/ibnshafi/memex/tree/main/examples) •
+[Benchmarks](https://github.com/ibnshafi/memex/tree/main/benchmarks)
 [![PyPI](https://img.shields.io/pypi/v/memex-ai?style=flat-square&color=0f6e56&label=pypi)](https://pypi.org/project/memex-ai/)
 [![npm](https://img.shields.io/npm/v/memex-ai?style=flat-square&color=0f6e56&label=npm)](https://www.npmjs.com/package/memex-ai)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue?style=flat-square)](https://pypi.org/project/memex-ai/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow?style=flat-square)](LICENSE)
-[![Tests](https://img.shields.io/github/actions/workflow/status/yourname/memex/ci.yml?style=flat-square&label=tests)](https://github.com/ibnshafi/memex/actions)
+[![Tests](https://img.shields.io/github/actions/workflow/status/ibnshafi/memex/ci.yml?style=flat-square&label=tests)](https://github.com/ibnshafi/memex/actions)
 [![Stars](https://img.shields.io/github/stars/ibnshafi/memex?style=flat-square)](https://github.com/ibnshafi/memex/stargazers)
+:::
 
-</div>
-
----
+------------------------------------------------------------------------
 
 Every LLM forgets everything the moment a session ends.
 
@@ -473,7 +481,7 @@ pip install -e ".[dev,local,server]"
 pytest tests/
 ```
 
-Good first issues are tagged [`good first issue`](https://github.com/yourname/memex/issues?q=label%3A%22good+first+issue%22). High-value areas: Gemini / Mistral / Cohere integrations, better deduplication heuristics, JS WASM embedder performance.
+Good first issues are tagged [`good first issue`](https://github.com/ibnshafi/memex/issues?q=label%3A%22good+first+issue%22). High-value areas: Gemini / Mistral / Cohere integrations, better deduplication heuristics, JS WASM embedder performance.
 
 ---
 
