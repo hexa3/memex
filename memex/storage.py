@@ -188,7 +188,7 @@ class SQLiteStorage:
         exclude_ids = exclude_ids or set()
         with self._lock:
             conn = self.connect()
-            if False and self._sqlite_vec_available and not filters:
+            if self._sqlite_vec_available and not filters:
                 try:
                     records = self._search_sqlite_vec(
                         conn,
@@ -546,7 +546,9 @@ class SQLiteStorage:
             WITH nearest AS (
                 SELECT id, distance
                 FROM memory_vectors
-                WHERE embedding MATCH ? AND k = ?
+                WHERE embedding MATCH ?
+                ORDER BY distance
+                LIMIT ?
             )
             SELECT m.*, nearest.distance AS distance
             FROM nearest
