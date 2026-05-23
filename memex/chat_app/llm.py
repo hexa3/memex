@@ -49,7 +49,16 @@ class LocalDemoLLM:
         memories: list[MemoryRecord],
     ) -> Iterable[str]:
         del history
-        memory_lines = [memory.text for memory in memories[:3]]
+        prioritized = sorted(
+            memories,
+            key=lambda memory: {
+                "semantic": 0,
+                "long_term": 1,
+                "short_term": 2,
+                "episodic": 3,
+            }.get(memory.memory_type, 4),
+        )
+        memory_lines = [memory.text for memory in prioritized[:3]]
         if memory_lines:
             intro = "I found relevant memory before answering: "
             memory_text = "; ".join(memory_lines)

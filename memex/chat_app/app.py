@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import uuid
 from collections.abc import Iterator
 from pathlib import Path
@@ -230,31 +231,57 @@ def _save_memories_from_turn(
 
 def _extract_demo_memories(user_message: str) -> list[tuple[str, MemoryKind]]:
     text = user_message.strip()
-    lowered = text.lower()
     memories: list[tuple[str, MemoryKind]] = []
-    patterns: list[tuple[str, str, MemoryKind]] = [
-        ("my name is ", "User's name is {value}.", "semantic"),
-        ("i am ", "User is {value}.", "semantic"),
-        ("i'm ", "User is {value}.", "semantic"),
-        ("i live in ", "User lives in {value}.", "semantic"),
-        ("i prefer ", "User prefers {value}.", "semantic"),
-        ("i like ", "User likes {value}.", "semantic"),
-        ("my goal is ", "User's goal is {value}.", "long_term"),
-        ("remember that ", "{value}.", "long_term"),
+    patterns: list[tuple[re.Pattern[str], str, MemoryKind]] = [
+        (
+            re.compile(r"\bmy name is (?P<value>[^.!?\n]{1,120})", re.I),
+            "User's name is {value}.",
+            "semantic",
+        ),
+        (re.compile(r"\bi am (?P<value>[^.!?\n]{1,120})", re.I), "User is {value}.", "semantic"),
+        (re.compile(r"\bi'm (?P<value>[^.!?\n]{1,120})", re.I), "User is {value}.", "semantic"),
+        (
+            re.compile(r"\bi live in (?P<value>[^.!?\n]{1,120})", re.I),
+            "User lives in {value}.",
+            "semantic",
+        ),
+        (
+            re.compile(r"\bi prefer (?P<value>[^.!?\n]{1,120})", re.I),
+            "User prefers {value}.",
+            "semantic",
+        ),
+        (
+            re.compile(r"\bi like (?P<value>[^.!?\n]{1,120})", re.I),
+            "User likes {value}.",
+            "semantic",
+        ),
+        (
+            re.compile(r"\bmy goal is (?P<value>[^.!?\n]{1,160})", re.I),
+            "User's goal is {value}.",
+            "long_term",
+        ),
+        (
+            re.compile(r"\bremember that (?P<value>[^.!?\n]{1,160})", re.I),
+            "{value}.",
+            "long_term",
+        ),
     ]
-    for marker, template, memory_type in patterns:
-        index = lowered.find(marker)
-        if index == -1:
+    for segment in re.findall(r"[^.!?]+[.!?]?", text):
+        segment = segment.strip()
+        if not segment or segment.endswith("?"):
             continue
-        raw = text[index + len(marker) :]
-        value = raw.split(".")[0].split("!")[0].split("?")[0].strip(" ,;:")
-        if not value:
-            continue
-        formatted_value = value[0].upper() + value[1:] if marker == "remember that " else value
-        formatted = template.format(value=formatted_value)
-        item = (formatted, memory_type)
-        if item not in memories:
-            memories.append(item)
+        for pattern, template, memory_type in patterns:
+            match = pattern.search(segment)
+            if match is None:
+                continue
+            value = match.group("value").strip(" ,;:")
+            if not value:
+                continue
+            formatted_value = value[0].upper() + value[1:] if template == "{value}." else value
+            formatted = template.format(value=formatted_value)
+            item = (formatted, memory_type)
+            if item not in memories:
+                memories.append(item)
     return memories[:4]
 
 

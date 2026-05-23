@@ -39,4 +39,16 @@ def test_chat_app_streams_reply_and_creates_visible_memories(tmp_path) -> None:
 
     memories = client.get("/api/memories").json()["memories"]
     memory_types = {memory["memory_type"] for memory in memories}
+    memory_texts = {memory["text"] for memory in memories}
     assert {"short_term", "semantic", "episodic"}.issubset(memory_types)
+    assert "User prefers concise Python examples." in memory_texts
+
+    client.post(
+        "/api/chat",
+        json={
+            "session_id": "test-session",
+            "message": "What do you remember about how I like answers?",
+        },
+    )
+    memories = client.get("/api/memories").json()["memories"]
+    assert all(memory["text"] != "User likes answers." for memory in memories)
