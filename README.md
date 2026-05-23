@@ -88,6 +88,53 @@ npm install memex-ai
 
 ---
 
+## Chat web app
+
+A fully working Notion-like chat UI with a live memory sidebar — built in, zero setup beyond an API key.
+
+![memex chat](https://github.com/ibnshafi/memex/raw/main/docs/chat-preview.png)
+
+**What it does:**
+
+- Streams assistant responses in real time
+- Retrieves relevant memories before every response
+- Shows exactly which memories influenced the current reply
+- Creates new memories visibly in the sidebar as you chat
+- Persists everything across refreshes in the local SQLite database
+- Supports `short_term`, `long_term`, `episodic`, and `semantic` memory types
+- Uses OpenAI automatically when `OPENAI_API_KEY` is set — falls back to a local demo model otherwise, so it works immediately with zero config
+
+**Run it:**
+
+```bash
+# Install
+pip install -e ".[server]"
+
+# Start
+python -m memex chat --port 8766
+```
+
+Then open `http://127.0.0.1:8766` in your browser.
+
+**How memory works under the hood:**
+
+Each chat turn calls `hybrid_search()` to retrieve relevant memories, injects them into the LLM context, streams the answer token by token, then saves new facts from the exchange. The sidebar receives streamed `memory_context` and `memory_created` events so the user sees memory being used and created in real time — not after the fact.
+
+**Where the code lives:**
+
+```
+memex/chat_app/
+├── __init__.py
+├── app.py          ← FastAPI backend
+├── llm.py          ← LLM layer (OpenAI + local fallback)
+└── static/
+    ├── index.html
+    ├── styles.css
+    └── app.js
+```
+
+---
+
 ## What it does
 
 ### Five memory types
@@ -557,7 +604,7 @@ memex deduplicates by content hash. Open a different conversation or reload befo
 - [x] Browser extension (ChatGPT, Claude, Gemini)
 - [x] Optional encrypted sync
 - [x] Rust performance core
-- [ ] `memex demo` — one-command chat UI with live memory sidebar
+- [x] `memex chat` — Notion-like chat UI with live memory sidebar (`python -m memex chat --port 8766`)
 - [ ] VS Code extension — codebase memory for AI coding assistants
 - [ ] Obsidian plugin — notes as memory, memory as context
 - [ ] Memory visualization — 2D UMAP projection of your memory space

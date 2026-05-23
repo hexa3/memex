@@ -122,7 +122,5 @@ module = [
   "fastapi.*",
   "uvicorn.*",
   "langchain.*",
-  "llama_index.*",
-  "cryptography.*",
 ]
 ignore_missing_imports = true
