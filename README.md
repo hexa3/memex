@@ -20,9 +20,9 @@
 [![PyPI](https://img.shields.io/pypi/v/memex-ai?style=flat-square&color=000000&label=pypi)](https://pypi.org/project/memex-ai/)
 [![npm](https://img.shields.io/npm/v/memex-ai?style=flat-square&color=000000&label=npm)](https://www.npmjs.com/package/memex-ai)
 [![Python](https://img.shields.io/badge/python-3.10%2B-000000?style=flat-square)](https://pypi.org/project/memex-ai/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-000000?style=flat-square)](LICENSE)
-[![Tests](https://img.shields.io/github/actions/workflow/status/ibnshafi/memex/ci.yml?style=flat-square&color=000000&label=tests)](https://github.com/ibnshafi/memex/actions)
-[![Stars](https://img.shields.io/github/stars/ibnshafi/memex?style=flat-square&color=000000)](https://github.com/ibnshafi/memex/stargazers)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-000000?style=flat-square)](LICENSE)
+[![Tests](https://img.shields.io/github/actions/workflow/status/hexa3/memex/ci.yml?style=flat-square&color=000000&label=tests)](https://github.com/hexa3/memex/actions)
+[![Stars](https://img.shields.io/github/stars/hexa3/memex?style=flat-square&color=000000)](https://github.com/hexa3/memex/stargazers)
 
 <br/>
 
@@ -92,7 +92,7 @@ npm install memex-ai
 
 A fully working Notion-like chat UI with a live memory sidebar — built in, zero setup beyond an API key.
 
-![memex chat](https://github.com/ibnshafi/memex/raw/main/docs/chat-preview.png)
+<!-- TODO: add a screenshot of the chat UI with the memory sidebar, e.g. docs/chat-preview.png -->
 
 **What it does:**
 
@@ -617,7 +617,7 @@ memex deduplicates by content hash. Open a different conversation or reload befo
 Issues and PRs are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) first.
 
 ```bash
-git clone https://github.com/ibnshafi/memex
+git clone https://github.com/hexa3/memex
 cd memex
 pip install -e ".[dev,local,server]"
 pytest tests/
@@ -630,13 +630,13 @@ cd js && npm install && npm run typecheck && npm test
 cd rust-core && cargo test
 ```
 
-Good first issues are tagged [`good first issue`](https://github.com/ibnshafi/memex/issues?q=label%3A%22good+first+issue%22). High-value areas: Gemini / Mistral / Cohere integrations, VS Code extension, Obsidian plugin, memory visualization.
+Good first issues are tagged [`good first issue`](https://github.com/hexa3/memex/issues?q=label%3A%22good+first+issue%22). High-value areas: Gemini / Mistral / Cohere integrations, VS Code extension, Obsidian plugin, memory visualization.
 
 ---
 
 ## License
 
-MIT © 2025 ibnshafi — free for personal and commercial use.
+Apache-2.0 © 2026 memex contributors — see [LICENSE](LICENSE).
 
 ---
 
@@ -654,7 +654,7 @@ If memex saved you from re-explaining yourself one more time — a ⭐ means eve
 
 <br/>
 
-[⭐ Star](https://github.com/ibnshafi/memex) · [🍴 Fork](https://github.com/ibnshafi/memex/fork) · [🐛 Issues](https://github.com/ibnshafi/memex/issues) · [💬 Discussions](https://github.com/ibnshafi/memex/discussions)
+[⭐ Star](https://github.com/hexa3/memex) · [🍴 Fork](https://github.com/hexa3/memex/fork) · [🐛 Issues](https://github.com/hexa3/memex/issues) · [💬 Discussions](https://github.com/hexa3/memex/discussions)
 
 <br/>
 
