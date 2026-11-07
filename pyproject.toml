@@ -98,6 +98,8 @@ addopts = "-q"
 testpaths = ["tests"]
 filterwarnings = [
   "error",
+  # starlette.testclient warns about httpx at import time; not our code.
+  "ignore::starlette.exceptions.StarletteDeprecationWarning",
 ]
 
 [tool.ruff]
