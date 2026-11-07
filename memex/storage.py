@@ -729,7 +729,7 @@ class SQLiteStorage:
         row: sqlite3.Row,
         *,
         include_embedding: bool,
-        metadata: MetadataDict | None | object = _MISSING,
+        metadata: MetadataDict | object | None = _MISSING,
         embedding: FloatVector | None = None,
     ) -> MemoryRecord:
         parsed_metadata: MetadataDict | None
